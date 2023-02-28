@@ -54,9 +54,9 @@ contract Rebasor {
 	
     mapping(address => uint256) public stakes;
     
-	mapping(address => uint256) public stFFPScdp;
+    mapping(address => uint256) public stFFPScdp;
 	
-	mapping(address => uint256) public stFeePerUnitcdp;
+    mapping(address => uint256) public stFeePerUnitcdp;
 
     uint256 lastFeeIndex;
     uint256 lastIndexTimestamp;
