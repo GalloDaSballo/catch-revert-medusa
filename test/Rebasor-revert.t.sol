@@ -30,6 +30,9 @@ contract RevertTests is Test {
         assertEq(rebasor.collateralCDP(address(this)), 150);
     }
 
+    /**
+        Reverts either because of my misunderstanding or because of a flaw in the math
+     */
     function testRebaseUpDistributiveProperty() public {
         // Taking 50% twice is the same as taking 50% once on twice the amount
 
@@ -55,6 +58,9 @@ contract RevertTests is Test {
         assertEq(rebasor.collateralCDP(address(this)), 150);
     }
 
+    /**
+        Reverts because of some weird issue
+     */
     function testDepositAndMintFuzz(uint64 initialAmount, uint64 secondAmount) public {
         // TODO
         vm.assume(initialAmount > 0);
