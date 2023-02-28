@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.13;
+pragma solidity 0.6.11;
+pragma experimental ABIEncoderV2;
 
 import "forge-std/Test.sol";
 import "../src/Rebasor.sol";
@@ -64,8 +65,11 @@ contract CounterTest is Test {
 
     function testRebaseUp() public {
         rebasor.deposit(100);
+        assertEq(rebasor.allStakes(), 100);
+        assertEq(rebasor.stakes(address(this)), 100);
 
         // Doubled
+        vm.warp(block.timestamp + 86400);
         STETH.addUnderlying(124);
 
         // 150 as we start with 100, we grow by 100, we take 50% fee
@@ -76,6 +80,7 @@ contract CounterTest is Test {
         rebasor.deposit(100);
 
         // Remove half
+        vm.warp(block.timestamp + 86400);
         STETH.removeUnderlying(62);
 
         // Lost 50%
