@@ -10,6 +10,7 @@ import {console} from "forge-std/console.sol";
 contract Handler is CommonBase, StdUtils {
     // CONSTANTS
     uint256 constant MINT_TEST_AMOUNT = 10 ether;
+    uint256 constant TIME_JUMP_INTERVAL = 86400;
 
     // STORAGE
     FakeRebasableETH public STETH;
@@ -51,7 +52,10 @@ contract Handler is CommonBase, StdUtils {
 
         STETH.addUnderlying(amount);
 
-        rebasor.collateralCDP(address(this));
+        if (rebasor.sharesDeposited(address(this)) > 0) {
+            vm.warp(block.timestamp + TIME_JUMP_INTERVAL);
+            rebasor.collateralCDP(address(this));
+        }
 
         ghost_rebaseUpSum += amount;
     }
@@ -62,7 +66,10 @@ contract Handler is CommonBase, StdUtils {
 
         STETH.removeUnderlying(amount);
 
-        rebasor.collateralCDP(address(this));
+        if (rebasor.sharesDeposited(address(this)) > 0) {
+            vm.warp(block.timestamp + TIME_JUMP_INTERVAL);
+            rebasor.collateralCDP(address(this));
+        }
 
         ghost_rebaseDownSum += amount;
     }
