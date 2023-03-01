@@ -141,32 +141,4 @@ contract RevertTests is Test {
         // Lost 50%
         assertEq(rebasor.collateralCDP(address(this)), 50);
     }
-
-    /**
-        Reverts because of some weird issue
-     */
-    // function testDepositAndMintFuzz(uint64 initialAmount, uint64 secondAmount) public {
-    //     // TODO
-    //     vm.assume(initialAmount > 0);
-    //     vm.assume(secondAmount > 0);
-    //     vm.assume((initialAmount + secondAmount) > 0);
-
-    //     // Always deposit
-    //     STETH.depositAndMint(initialAmount);
-
-    //     // Check we have right balance
-    //     assertEq(STETH.balanceOf(address(this)), initialAmount);
-
-    //     // And linear increment has linear minting
-    //     assertEq(STETH.getSharesByPooledEth(secondAmount), secondAmount);
-
-        
-    //     STETH.depositAndMint(secondAmount);
-    //     uint256 expectedTotal = initialAmount + secondAmount;
-    //     log_uint(initialAmount);
-    //     log_uint(secondAmount);
-    //     log_uint(expectedTotal);
-    //     assertEq(STETH.balanceOf(address(this)), expectedTotal);
-    // }
-
 }
