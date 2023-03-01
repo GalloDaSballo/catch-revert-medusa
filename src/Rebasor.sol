@@ -46,6 +46,7 @@ contract Rebasor {
 
     uint256 public stFFPSg; // Global Index
     uint256 public stFeePerUnitg = 1e18; // Global Fee accumulator per stake unit
+    uint256 public stFeePerUnitgError;
 
     uint256 public allShares;
     uint256 public allStakes;
@@ -117,6 +118,7 @@ contract Rebasor {
             // Handle Slashing
             getIndexAfterSlash(cachedIndex, newIndex);
         }
+        stFFPScdp[msg.sender] = newIndex;
         return _getUnderlyingFromShare(sharesDeposited[msg.sender], newIndex);
     }
 
@@ -125,22 +127,19 @@ contract Rebasor {
         require(newIndex > prevIndex);		
         require(block.timestamp - lastIndexTimestamp > INDEX_UPD_INTERVAL, "!updateTooFrequent");
 
-        uint256 deltaIndex = newIndex - prevIndex;
-        uint256 deltaIndexFees = deltaIndex * FEE / MAX_BPS;
-
 //        uint256 deltaIndexAfterFees = deltaIndex - deltaIndexFees;
 //        uint256 newRebaseIndex = prevIndex + deltaIndexAfterFees;
 
-        // we take the fee for all CDPs immediately and update the global index/accumulator
-        uint256 _deltaFeeSplit = deltaIndexFees * allShares / 1e18;
-        uint256 _deltaFeeSplitShare = _deltaFeeSplit * STETH.getSharesByPooledEth(1e18) / 1e18;
-        uint256 _deltaPerUnit = _deltaFeeSplitShare * 1e18 / allStakes;
+        (uint256 _deltaFeeSplitShare, uint256 _deltaPerUnit, uint256 _newErrorPerUnit) = calcFeeUponStakingReward(newIndex, prevIndex);
+        stFeePerUnitgError = _newErrorPerUnit;
+		
         require(_deltaPerUnit > 0, "!feePerUnit");
         stFeePerUnitg += _deltaPerUnit;		
         stFFPSg = newIndex;
         lastIndexTimestamp = block.timestamp;
-        require(allShares > _deltaFeeSplitShare, "!tooBigFee");
-        allShares -= _deltaFeeSplitShare;
+		
+        require((allShares * 1e18) > _deltaFeeSplitShare, "!tooBigFee");
+        allShares = ((allShares * 1e18) - _deltaFeeSplitShare) / 1e18;
     }
 
     // update global index when there is a staking slash
@@ -156,18 +155,30 @@ contract Rebasor {
     }
 
     function getValueAtCurrentIndex() external view returns (uint256) {
-
+        return _getUnderlyingFromShare(sharesDeposited[msg.sender], STETH.getPooledEthByShares(1e18));
     }
 
     function getValueAfterFees() external view returns (uint256) {
 
     }
 	
+    // note the first returned _deltaFeeSplitShare is scaled by 1e18 
+    function calcFeeUponStakingReward(uint256 _newIndex, uint256 _prevIndex) public view returns (uint256, uint256, uint256) {
+        uint256 deltaIndex = _newIndex - _prevIndex;
+        uint256 deltaIndexFees = deltaIndex * FEE / MAX_BPS;
+
+        // we take the fee for all CDPs immediately and update the global index/accumulator
+        uint256 _deltaFeeSplit = deltaIndexFees * allShares;
+        uint256 _deltaFeeSplitShare = _deltaFeeSplit * STETH.getSharesByPooledEth(1e18) / 1e18 + stFeePerUnitgError;
+        uint256 _deltaPerUnit = _deltaFeeSplitShare / allStakes;
+        return (_deltaFeeSplitShare, _deltaPerUnit, (_deltaFeeSplitShare - (_deltaPerUnit * allStakes)));
+    }
+	
     function _updateCdpAfterFee(address cdp) internal {
         uint _oldStake = stakes[cdp];	
-        uint _feeSplitDistributed = _oldStake * (stFeePerUnitg - stFeePerUnitcdp[cdp]) / 1e18;
-        require(sharesDeposited[cdp] > _feeSplitDistributed, "!tooBigFeeForCDP");
-        sharesDeposited[cdp] -= _feeSplitDistributed;
+        uint _feeSplitDistributed = _oldStake * (stFeePerUnitg - stFeePerUnitcdp[cdp]);
+        require((sharesDeposited[cdp] * 1e18) > _feeSplitDistributed, "!tooBigFeeForCDP");
+        sharesDeposited[cdp] = ((sharesDeposited[cdp] * 1e18) - _feeSplitDistributed) / 1e18;
         stFeePerUnitcdp[cdp] = stFeePerUnitg;
 
         uint _newStake = _computeNewStake(sharesDeposited[cdp]);
