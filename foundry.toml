@@ -7,5 +7,9 @@ remappings = [
 ]
 solc_version = "0.6.11"
 
+[fuzz]
+runs = 10000000
+
+
 [invariant]
 runs = 1000
