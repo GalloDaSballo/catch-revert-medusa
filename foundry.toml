@@ -5,10 +5,10 @@ libs = ['lib']
 remappings = [
     'forge-std/=lib/forge-std/src/',
 ]
-solc_version = "0.6.11"
+solc_version = "0.8.13"
 
 [fuzz]
-runs = 10000000
+runs = 100000
 
 
 [invariant]
