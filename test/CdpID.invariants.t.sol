@@ -34,16 +34,32 @@ contract EventEmitter {
     }
 }
 
+contract HACK {
+   
+    address[] public owners = [address(3),address(5)];
+
+   function tryy( ) public {
+        delete owners;
+       address[] storage a = owners;
+
+       a.push(address(9));
+       a.push(address(7));
+       
+   }
+
+}
+
 contract CompoundedStakesFuzz is Test {
-    EventEmitter e;
+    HACK e;
     function setUp() public {
-        e = new EventEmitter();
+        e = new HACK();
     }
     function testCompareOne() public {
-        e.onlyOne();
+        e.tryy();
+        console2.log("e", e.owners(0));
+        console2.log("e", e.owners(1));
+        console2.log("e", e.owners(2));
+        console2.log("e", e.owners(3));
     }
 
-    function testCompareTwo() public {
-        e.both();
-    }
 }
