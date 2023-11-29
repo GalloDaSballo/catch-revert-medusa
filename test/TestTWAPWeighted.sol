@@ -5,15 +5,15 @@ pragma solidity 0.8.17;
 import "forge-std/Test.sol";
 import "forge-std/console2.sol";
 import "src/ExampleTwap.sol";
-import "src/TwapObserver.sol";
+import "src/TwapWeightedObserver.sol";
 
 contract ExampleTwapObserverTest is Test {
     ExampleTwap twapAcc;
-    ExampleTwapObserver twapTester;
+    TwapWeightedObserver twapTester;
 
     function setUp() public {
         twapAcc = new ExampleTwap(0);
-        twapTester = new ExampleTwapObserver(address(twapAcc));
+        twapTester = new TwapWeightedObserver(address(twapAcc));
     }
 
     function _log() internal {
@@ -25,7 +25,7 @@ contract ExampleTwapObserverTest is Test {
         console2.log("twapAcc.observe();", twapTester.observe());
     }
 
-    function testDebugObserver() public {
+    function testDebugObserverWeighted() public {
         uint256 ONE_HUNDRED = 100;
         uint256 ONE_WEEK = 1 weeks;
 
@@ -46,9 +46,11 @@ contract ExampleTwapObserverTest is Test {
         twapAcc.setValue(ONE_HUNDRED * 50);
         twapTester.update();
         _log();
+        console2.log("vm.warp(ONE_WEEK * 3 + 10);");
         vm.warp(ONE_WEEK * 3 + 10);
         twapTester.update();
         _log();
+        console2.log("vm.warp(ONE_WEEK * 3 + 1 days);");
         vm.warp(ONE_WEEK * 3 + 1 days);
         twapAcc.setValue(ONE_HUNDRED * 20);
         twapTester.update();
