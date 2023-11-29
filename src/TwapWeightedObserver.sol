@@ -32,7 +32,7 @@ contract TwapWeightedObserver {
         // Here, we need to apply the new accumulator to skew the price in some way
         // The weight of the skew should be proportional to the time passed
 
-        if(block.timestamp - t0 == 0) {
+        if (block.timestamp - t0 == 0) {
             return avgValue;
         }
 
@@ -45,7 +45,7 @@ contract TwapWeightedObserver {
         uint256 futureWeight = block.timestamp - t0;
         uint256 maxWeight = PERIOD;
 
-        if(futureWeight > maxWeight) {
+        if (futureWeight > maxWeight) {
             update(); // May as well update
             // Return virtual
             return virtualAvgValue;
@@ -55,7 +55,6 @@ contract TwapWeightedObserver {
         uint256 weightedVirtual = virtualAvgValue * (futureWeight);
 
         uint256 weightedMean = (weightedAvg + weightedVirtual) / PERIOD;
-
 
         return weightedMean;
     }
