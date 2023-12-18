@@ -8,7 +8,7 @@ import "forge-std/console2.sol";
 
 contract DumbContract {
     function fallback() {
-        require(gasleft() )
+        require(gasleft());
     }
 }
 
