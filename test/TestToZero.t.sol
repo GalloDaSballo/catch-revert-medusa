@@ -117,7 +117,7 @@ contract TwTap {
 }
 
 contract ExampleTest is Test {
-    function testTheTwap() public {
+    function testToZero() public {
         TwTap twtap = new TwTap();
 
         // Reverse binary search on duration
@@ -130,31 +130,18 @@ contract ExampleTest is Test {
 
         uint256 totalAmtNeeded;
 
-        // Amt is always the min required
-        while(twtap.spent() < 100_000e18) {
-            // duration reverse loop
-            amt = twtap.getMinWeight() > 0 ? twtap.getMinWeight() : 1000e18;
-            totalAmtNeeded += amt;
-            bool success;
-            duration = lastGoodDuration;
+        // Normal Lock
+        twtap.participate(lastGoodDuration, 10_0000);
+        console2.log("cumulative start", twtap.cumulative());
 
+        // Smaller lock, proof we can drag down
+        twtap.participate(lastGoodDuration / 2, 10_0000);
+        console2.log("cumulative start", twtap.cumulative());
 
-            while(!success) {
-                console2.log("averageMagnitude", twtap.averageMagnitude());
-                try twtap.participate(duration, amt) returns (uint256 additionalMultipler) {
-                    lastGoodDuration = duration * 1000; // Increase by 1k so we have a chance at expanding next loop
-                    success = true; // Done with this iteration
-                    totalMultiplier += additionalMultipler;
-
-                    assert(duration < type(uint56).max);
-                } catch {
-                    duration = duration / 2; // Cut reduce by 1/5 each time, more fine grained
-                }
-            }
+        // Drag down to theoretical minmum
+        while(twtap.cumulative() > 604557) {
+            twtap.participate(twtap.EPOCH_DURATION() + 1, 10_0000);
+            console2.log("cumulative start", twtap.cumulative());
         }
-
-        console2.log("lastGoodDuration", lastGoodDuration);
-        console2.log("twtap.spent", twtap.spent());
-        console2.log("totalMultiplier", totalMultiplier);
     }
 }
