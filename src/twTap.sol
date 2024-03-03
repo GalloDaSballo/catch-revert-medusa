@@ -2,20 +2,15 @@
 pragma solidity 0.8.22;
 
 // External
-import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ReentrancyGuard} from "@oz/security/ReentrancyGuard.sol";
+import {SafeERC20} from "@oz/token/ERC20/utils/SafeERC20.sol";
+import {ERC721} from "@oz/token/ERC721/ERC721.sol";
+import {Pausable} from "@oz/security/Pausable.sol";
+import {IERC20} from "@oz/token/ERC20/IERC20.sol";
+import {Ownable} from "@oz/access/Ownable.sol";
 
-// Tapioca
-import {IPearlmit, PearlmitHandler} from "tapioca-periph/pearlmit/PearlmitHandler.sol";
-import {ERC721NftLoader} from "tap-token/erc721NftLoader/ERC721NftLoader.sol";
-import {ERC721Permit} from "tapioca-periph/utils/ERC721Permit.sol";
-import {ERC721PermitStruct} from "tap-token/tokens/ITapToken.sol";
-import {TapToken} from "tap-token/tokens/TapToken.sol";
-import {TWAML} from "tap-token/options/twAML.sol";
+import {TapToken} from "./TapToken.sol";
+import {TWAML} from "./twAML.sol";
 
 /*
 
@@ -66,7 +61,7 @@ struct WeekTotals {
     mapping(uint256 => uint256) totalDistPerVote;
 }
 
-contract TwTAP is TWAML, ERC721, ERC721Permit, Ownable, PearlmitHandler, ERC721NftLoader, ReentrancyGuard, Pausable {
+contract TwTAP is TWAML, ERC721, ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;
 
     TapToken public immutable tapOFT;
@@ -127,10 +122,8 @@ contract TwTAP is TWAML, ERC721, ERC721Permit, Ownable, PearlmitHandler, ERC721N
     error AdvanceEpochFirst();
 
     /// =====-------======
-    constructor(address payable _tapOFT, IPearlmit _pearlmit, address _owner)
-        ERC721NftLoader("Time Weighted TAP", "twTAP", _owner)
-        ERC721Permit("Time Weighted TAP")
-        PearlmitHandler(_pearlmit)
+    constructor(address payable _tapOFT)
+    ERC721("TwTap", "twTAP")
     {
         tapOFT = TapToken(_tapOFT);
         creation = block.timestamp;
@@ -152,16 +145,6 @@ contract TwTAP is TWAML, ERC721, ERC721Permit, Ownable, PearlmitHandler, ERC721N
     );
     event ExitPosition(uint256 indexed tokenId, uint256 indexed amount);
 
-    // ==========
-    //    READ
-    // ==========
-
-    /**
-     * @inheritdoc ERC721NftLoader
-     */
-    function tokenURI(uint256 tokenId) public view override(ERC721, ERC721NftLoader) returns (string memory) {
-        return ERC721NftLoader.tokenURI(tokenId);
-    }
 
     /**
      * @notice Return the address of reward tokens.
@@ -265,20 +248,6 @@ contract TwTAP is TWAML, ERC721, ERC721Permit, Ownable, PearlmitHandler, ERC721N
         return result;
     }
 
-    /**
-     * @dev Returns the hash of the struct used by the permit function.
-     * @param _permitData Struct containing permit data.
-     */
-    function getTypedDataHash(ERC721PermitStruct calldata _permitData) public view returns (bytes32) {
-        bytes32 permitTypeHash_ = keccak256("Permit(address spender,uint256 tokenId,uint256 nonce,uint256 deadline)");
-
-        bytes32 structHash_ = keccak256(
-            abi.encode(
-                permitTypeHash_, _permitData.spender, _permitData.tokenId, _permitData.nonce, _permitData.deadline
-            )
-        );
-        return _hashTypedDataV4(structHash_);
-    }
 
     // ===========
     //    WRITE
@@ -292,20 +261,17 @@ contract TwTAP is TWAML, ERC721, ERC721Permit, Ownable, PearlmitHandler, ERC721N
     /// @param _duration The duration of the lock
     function participate(address _participant, uint256 _amount, uint256 _duration)
         external
-        whenNotPaused
+        
         nonReentrant
         returns (uint256 tokenId)
     {
         if (_duration < EPOCH_DURATION) revert LockNotAWeek();
         if (_duration > MAX_LOCK_DURATION) revert LockTooLong();
         if (_timestampToWeek(block.timestamp) > currentWeek()) revert AdvanceEpochFirst(); /// @audit ???
-        /// @audit WHY do they need to advance? And why is the comparison wrong?
-        // Transfer TAP to this contract
-        {   /// @audit Pearlmit is mandatory, TODO: Further investigate
-            // tapOFT.transferFrom(msg.sender, address(this), _amount);
-            bool isErr = pearlmit.transferFromERC20(msg.sender, address(this), address(tapOFT), _amount);
-            if (isErr) revert NotAuthorized();
-        }
+
+
+        // NOTE: Changed to simple transfer
+        tapOFT.transferFrom(msg.sender, address(this), _amount);
 
         // Copy to memory
         TWAMLPool memory pool = twAML;
@@ -396,7 +362,7 @@ contract TwTAP is TWAML, ERC721, ERC721Permit, Ownable, PearlmitHandler, ERC721N
     function claimRewards(uint256 _tokenId, address _to)
         external
         nonReentrant
-        whenNotPaused
+        
         returns (uint256[] memory amounts_)
     {
         _requireClaimPermission(_to, _tokenId); /// @audit This permission is same as transfer, doesn't respect least privilege
@@ -414,7 +380,7 @@ contract TwTAP is TWAML, ERC721, ERC721Permit, Ownable, PearlmitHandler, ERC721N
     function exitPosition(uint256 _tokenId, address _to)
         external
         nonReentrant
-        whenNotPaused
+        
         returns (uint256 tapAmount_)
     {
         {
@@ -521,16 +487,7 @@ contract TwTAP is TWAML, ERC721, ERC721Permit, Ownable, PearlmitHandler, ERC721N
         return newTokenIndex;
     }
 
-    /**
-     * @notice Un/Pauses this contract.
-     */
-    function setPause(bool _pauseState) external onlyOwner {
-        if (_pauseState) {
-            _pause();
-        } else {
-            _unpause();
-        }
-    }
+
 
     // ============
     //   INTERNAL
@@ -545,7 +502,7 @@ contract TwTAP is TWAML, ERC721, ERC721Permit, Ownable, PearlmitHandler, ERC721N
      * @dev Use `_isApprovedOrOwner()` internally. /// @audit Could this allow stealing in some way?
      */
     function _requireClaimPermission(address _to, uint256 _tokenId) internal view { /// @audit This is actually wrong
-        if (!_isApprovedOrOwner(_to, _tokenId) && !isERC721Approved(_ownerOf(_tokenId), _to, address(this), _tokenId)) {
+        if (!_isApprovedOrOwner(_to, _tokenId)) {
             revert NotApproved(_tokenId, msg.sender); /// @audit This is incorrect
         }
     }
@@ -641,10 +598,4 @@ contract TwTAP is TWAML, ERC721, ERC721Permit, Ownable, PearlmitHandler, ERC721N
         return block.chainid;
     }
 
-    /**
-     * @dev See {IERC165-supportsInterface}.
-     */
-    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721) returns (bool) {
-        return super.supportsInterface(interfaceId);
-    }
 }
