@@ -24,7 +24,7 @@
       "0x30000"
     ],
     "blockNumberDelayMax": 60480,
-    "blockTimestampDelayMax": 604800,
+    "blockTimestampDelayMax": 30240000,
     "blockGasLimit": 125000000,
     "transactionGasLimit": 12500000,
     "testing": {
