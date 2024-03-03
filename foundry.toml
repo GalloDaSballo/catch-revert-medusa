@@ -4,6 +4,7 @@ out = 'out'
 libs = ['lib']
 remappings = [
     'forge-std/=lib/forge-std/src/',
+    '@oz=/lib/openzeppelin-contracts/contracts/'
 ]
 solc_version = "0.8.17"
 
