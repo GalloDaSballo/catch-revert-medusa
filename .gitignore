@@ -9,3 +9,7 @@ out/
 
 # Dotenv file
 .env
+
+# Medusa
+/crytic-export
+/medusa

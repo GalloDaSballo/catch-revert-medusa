@@ -40,6 +40,7 @@ struct Participation {
     uint56 expiry; // expiry timestamp. Big enough for over 2 billion years..
     uint88 tapAmount; // amount of TAP locked
     uint24 multiplier; // Votes = multiplier * tapAmount
+    uint256 unpackedMultiplier; // Votes = multiplier * tapAmount
     uint40 lastInactive; // One week BEFORE the staker gets a share of rewards
     uint40 lastActive; // Last week that the staker shares in rewards
 }
@@ -69,7 +70,27 @@ contract TwTAP is TWAML, ERC721, ReentrancyGuard, Ownable {
     /// ===== TWAML ======
     TWAMLPool public twAML; // sglAssetId => twAMLPool
 
+    function getCumulative() public view returns (uint256) {
+        return twAML.cumulative;
+    }
+    function getAverage() public view returns (uint256) {
+        return twAML.averageMagnitude;
+    }
+    function getTotalDeposited() public view returns (uint256) {
+        return twAML.totalDeposited;
+    }
+
     mapping(uint256 => Participation) public participants; // tokenId => part.
+    function getParticipationAmount(uint256 i) public view returns (uint256) {
+        if(!participants[i].tapReleased) {
+          return participants[i].tapAmount;
+        }
+
+        return 0;
+    }
+    function getParticipantMultiplierMatchesUnpacked(uint256 index) public view returns (bool) {
+        return uint256(participants[index].multiplier) == participants[index].unpackedMultiplier;
+    }
 
     /// @dev Virtual total amount to add to the total when computing twAML participation right. Default 10_000 * 1e18.
     uint256 private VIRTUAL_TOTAL_AMOUNT = 10_000 ether;
@@ -333,6 +354,7 @@ contract TwTAP is TWAML, ERC721, ReentrancyGuard, Ownable {
             expiry: uint56(expiry), /// @audit why?
             tapAmount: uint88(_amount), /// @audit Can we make this overflow?
             multiplier: uint24(multiplier), /// @audit Can we make this overflow?
+            unpackedMultiplier: multiplier, /// @audit Can we make this overflow?
             lastInactive: uint40(w0),
             lastActive: uint40(w1)
         });
